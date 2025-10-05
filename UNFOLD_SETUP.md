@@ -2,7 +2,7 @@
 
 ## What Was Done
 
-Django Unfold (Tailwind-based modern admin theme) has been successfully installed and configured for your WhatsApp Web API SaaS project.
+Django Unfold (Tailwind-based modern admin theme) has been successfully installed and configured for your SanaSend SaaS project.
 
 ### Changes Made:
 

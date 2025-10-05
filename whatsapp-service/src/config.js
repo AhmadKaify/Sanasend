@@ -23,7 +23,7 @@ module.exports = {
   maxConcurrentSessions: parseInt(process.env.MAX_CONCURRENT_SESSIONS) || 50,
   
   // Webhook
-  webhookUrl: process.env.WEBHOOK_URL,
+  webhookUrl: process.env.WEBHOOK_URL || `${process.env.DJANGO_API_URL || 'http://localhost:8000'}/api/v1/sessions/webhook/`,
   
   // Security
   apiKey: process.env.API_KEY || 'change-this-secret-key',

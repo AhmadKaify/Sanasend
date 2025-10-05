@@ -67,36 +67,41 @@ class RateLimitMiddleware(MiddlewareMixin):
     
     def _check_rate_limits(self, request, user):
         """Check rate limits for the user"""
-        now = timezone.now()
-        user_id = user.id
-        
-        # Check daily message limit
-        daily_limit = getattr(user, 'max_messages_per_day', settings.MAX_MESSAGES_PER_DAY)
-        daily_key = f"rate_limit:daily:{user_id}:{now.date()}"
-        daily_count = cache.get(daily_key, 0)
-        
-        if daily_count >= daily_limit:
-            return self._rate_limit_response(
-                "Daily message limit exceeded",
-                daily_limit,
-                daily_count,
-                "daily"
-            )
-        
-        # Check per-minute limit
-        minute_limit = settings.MAX_MESSAGES_PER_MINUTE
-        minute_key = f"rate_limit:minute:{user_id}:{now.strftime('%Y-%m-%d-%H-%M')}"
-        minute_count = cache.get(minute_key, 0)
-        
-        if minute_count >= minute_limit:
-            return self._rate_limit_response(
-                "Per-minute message limit exceeded",
-                minute_limit,
-                minute_count,
-                "minute"
-            )
-        
-        return None
+        try:
+            now = timezone.now()
+            user_id = user.id
+            
+            # Check daily message limit
+            daily_limit = getattr(user, 'max_messages_per_day', settings.MAX_MESSAGES_PER_DAY)
+            daily_key = f"rate_limit:daily:{user_id}:{now.date()}"
+            daily_count = cache.get(daily_key, 0)
+            
+            if daily_count >= daily_limit:
+                return self._rate_limit_response(
+                    "Daily message limit exceeded",
+                    daily_limit,
+                    daily_count,
+                    "daily"
+                )
+            
+            # Check per-minute limit
+            minute_limit = settings.MAX_MESSAGES_PER_MINUTE
+            minute_key = f"rate_limit:minute:{user_id}:{now.strftime('%Y-%m-%d-%H-%M')}"
+            minute_count = cache.get(minute_key, 0)
+            
+            if minute_count >= minute_limit:
+                return self._rate_limit_response(
+                    "Per-minute message limit exceeded",
+                    minute_limit,
+                    minute_count,
+                    "minute"
+                )
+            
+            return None
+        except Exception as e:
+            # If cache is unavailable (e.g., Redis not running), log and allow request
+            logger.warning(f"Rate limit check cache error: {e}. Allowing request.")
+            return None
     
     def _rate_limit_response(self, message, limit, current, period):
         """Return rate limit exceeded response"""
@@ -146,37 +151,41 @@ class UsageTrackingMiddleware(MiddlewareMixin):
     
     def _track_api_usage(self, request, user, response):
         """Track API usage in Redis"""
-        now = timezone.now()
-        user_id = user.id
-        
-        # Increment daily API requests
-        daily_key = f"usage:daily_api:{user_id}:{now.date()}"
-        cache.incr(daily_key)
-        cache.expire(daily_key, 86400)  # Expire after 24 hours
-        
-        # Increment per-minute API requests
-        minute_key = f"usage:minute_api:{user_id}:{now.strftime('%Y-%m-%d-%H-%M')}"
-        cache.incr(minute_key)
-        cache.expire(minute_key, 60)  # Expire after 1 minute
-        
-        # Track message sending specifically
-        if (request.path in ['/api/v1/messages/send-text/', '/api/v1/messages/send-media/'] 
-            and request.method == 'POST' 
-            and response.status_code == 200):
+        try:
+            now = timezone.now()
+            user_id = user.id
             
-            # Increment daily message count
-            daily_msg_key = f"rate_limit:daily:{user_id}:{now.date()}"
-            cache.incr(daily_msg_key)
-            cache.expire(daily_msg_key, 86400)
+            # Increment daily API requests
+            daily_key = f"usage:daily_api:{user_id}:{now.date()}"
+            cache.incr(daily_key)
+            cache.expire(daily_key, 86400)  # Expire after 24 hours
             
-            # Increment per-minute message count
-            minute_msg_key = f"rate_limit:minute:{user_id}:{now.strftime('%Y-%m-%d-%H-%M')}"
-            cache.incr(minute_msg_key)
-            cache.expire(minute_msg_key, 60)
+            # Increment per-minute API requests
+            minute_key = f"usage:minute_api:{user_id}:{now.strftime('%Y-%m-%d-%H-%M')}"
+            cache.incr(minute_key)
+            cache.expire(minute_key, 60)  # Expire after 1 minute
             
-            # Track media vs text messages
-            if request.path == '/api/v1/messages/send-media/':
-                media_key = f"usage:daily_media:{user_id}:{now.date()}"
-                cache.incr(media_key)
-                cache.expire(media_key, 86400)
+            # Track message sending specifically
+            if (request.path in ['/api/v1/messages/send-text/', '/api/v1/messages/send-media/'] 
+                and request.method == 'POST' 
+                and response.status_code == 200):
+                
+                # Increment daily message count
+                daily_msg_key = f"rate_limit:daily:{user_id}:{now.date()}"
+                cache.incr(daily_msg_key)
+                cache.expire(daily_msg_key, 86400)
+                
+                # Increment per-minute message count
+                minute_msg_key = f"rate_limit:minute:{user_id}:{now.strftime('%Y-%m-%d-%H-%M')}"
+                cache.incr(minute_msg_key)
+                cache.expire(minute_msg_key, 60)
+                
+                # Track media vs text messages
+                if request.path == '/api/v1/messages/send-media/':
+                    media_key = f"usage:daily_media:{user_id}:{now.date()}"
+                    cache.incr(media_key)
+                    cache.expire(media_key, 86400)
+        except Exception as e:
+            # If cache is unavailable (e.g., Redis not running), log and continue
+            logger.warning(f"API usage tracking cache error: {e}. Continuing without tracking.")
 

@@ -1,4 +1,4 @@
-# WhatsApp Web API SaaS - Development Checklist
+# SanaSend SaaS - Development Checklist
 
 ## Project Overview
 A Django-based SaaS application that provides WhatsApp Web access through a REST API. Admin-managed users only, no payment system in this version.

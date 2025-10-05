@@ -1,5 +1,5 @@
 """
-Production settings for WhatsApp Web API SaaS
+Production settings for SanaSend SaaS
 """
 import os
 from .base import *

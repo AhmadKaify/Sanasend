@@ -1,5 +1,5 @@
 """
-Staging settings for WhatsApp Web API SaaS
+Staging settings for SanaSend SaaS
 """
 from .production import *
 

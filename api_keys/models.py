@@ -55,16 +55,6 @@ class APIKey(models.Model):
         random_part = secrets.token_urlsafe(32)
         return f"wsk_{timestamp}_{random_part}"
     
-    def save(self, *args, **kwargs):
-        if not self.key:
-            # Generate new key on creation
-            raw_key = self.generate_key()
-            # Use HMAC for additional security
-            self.key = self._hash_key(raw_key)
-            # Store raw key temporarily for display
-            self._raw_key = raw_key
-        super().save(*args, **kwargs)
-    
     def _hash_key(self, raw_key):
         """Hash the API key using HMAC with secret key"""
         secret = settings.SECRET_KEY.encode('utf-8')
@@ -126,6 +116,15 @@ class APIKey(models.Model):
                 raise ValidationError('Invalid IP address in whitelist.')
     
     def save(self, *args, **kwargs):
+        # Generate key on creation
+        if not self.key:
+            raw_key = self.generate_key()
+            # Use HMAC for additional security
+            self.key = self._hash_key(raw_key)
+            # Store raw key temporarily for display
+            self._raw_key = raw_key
+        
+        # Validate before saving
         self.clean()
         super().save(*args, **kwargs)
 

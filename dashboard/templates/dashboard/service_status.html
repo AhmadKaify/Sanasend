@@ -1,0 +1,347 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Service Status{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">WhatsApp Service Status</h1>
+        <p class="page-subtitle">Monitor and manage the Node.js WhatsApp service</p>
+    </div>
+    
+    <!-- Service Status Card -->
+    <div class="card">
+        <div class="px-6 py-5 border-b border-gray-100">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold text-gray-900">Service Status</h2>
+                <button onclick="refreshStatus()" class="px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors" style="background: var(--primary-600); hover:background: var(--primary-700);">
+                    <i class="fas fa-sync-alt mr-2"></i>
+                    Refresh
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <!-- Status Info -->
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-16 h-16 rounded-full flex items-center justify-center {% if status.running and status.healthy %}bg-green-100{% else %}bg-red-100{% endif %}">
+                                <i class="fas {% if status.running and status.healthy %}fa-check-circle text-green-600{% else %}fa-exclamation-circle text-red-600{% endif %} text-2xl"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900">
+                                {% if status.running and status.healthy %}
+                                    <span class="text-green-600">Service Running</span>
+                                {% elif status.running %}
+                                    <span class="text-yellow-600">Service Unhealthy</span>
+                                {% else %}
+                                    <span class="text-red-600">Service Stopped</span>
+                                {% endif %}
+                            </h3>
+                            <p class="text-sm text-gray-500 mt-1">{{ status.message }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600 font-semibold">Service URL:</span>
+                            <span class="text-gray-900 font-mono">{{ status.url }}</span>
+                        </div>
+                        {% if status.uptime %}
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600 font-semibold">Uptime:</span>
+                            <span class="text-gray-900">{{ status.uptime|floatformat:0 }} seconds</span>
+                        </div>
+                        {% endif %}
+                        {% if status.timestamp %}
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600 font-semibold">Last Check:</span>
+                            <span class="text-gray-900">{{ status.timestamp }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Control Actions -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider">Control Actions</h3>
+                    
+                    <div class="space-y-3">
+                        {% if status.running %}
+                        <button onclick="performAction('restart')" class="w-full px-4 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center">
+                            <i class="fas fa-redo mr-2"></i>
+                            Restart Service
+                        </button>
+                        
+                        <button onclick="performAction('stop')" class="w-full px-4 py-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center justify-center">
+                            <i class="fas fa-stop mr-2"></i>
+                            Stop Service
+                        </button>
+                        {% else %}
+                        <button onclick="performAction('start')" class="w-full px-4 py-3 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center justify-center">
+                            <i class="fas fa-play mr-2"></i>
+                            Start Service
+                        </button>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div class="flex">
+                            <i class="fas fa-info-circle text-blue-600 mt-0.5 mr-3"></i>
+                            <div class="text-xs text-blue-800">
+                                <p class="font-semibold mb-1">Session Persistence:</p>
+                                <ul class="list-disc list-inside space-y-1">
+                                    <li><strong>Sessions are preserved</strong> - Auth data is saved to disk</li>
+                                    <li>Brief disconnection (~5-10 seconds) during restart</li>
+                                    <li>Sessions auto-reconnect after service restarts</li>
+                                    <li>No QR scan needed if auth files are intact</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-3">
+                        <div class="flex">
+                            <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5 mr-3"></i>
+                            <div class="text-xs text-yellow-800">
+                                <p class="font-semibold mb-1">Important Notes:</p>
+                                <ul class="list-disc list-inside space-y-1">
+                                    <li>Service commands may require appropriate permissions</li>
+                                    <li>Allow 5-10 seconds for sessions to restore after restart</li>
+                                    <li>Check logs for restoration status</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Active Sessions -->
+    <div class="card">
+        <div class="px-6 py-5 border-b border-gray-100">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Active Sessions</h2>
+                    <p class="text-sm text-gray-500 mt-1">Sessions that will auto-restore after restart</p>
+                </div>
+                <span class="px-3 py-1 text-sm font-bold rounded-full {% if active_sessions_count > 0 %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-600{% endif %}">
+                    {{ active_sessions_count }} Active
+                </span>
+            </div>
+        </div>
+        {% if active_sessions %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-100">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">User</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Instance</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Phone</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Last Active</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-50">
+                    {% for session in active_sessions %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                            {{ session.user.username }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                            {{ session.instance_name }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if session.status == 'connected' %}
+                                <span class="px-2 py-1 text-xs font-bold rounded-full bg-green-100 text-green-700">
+                                    <i class="fas fa-check-circle mr-1"></i>Connected
+                                </span>
+                            {% else %}
+                                <span class="px-2 py-1 text-xs font-bold rounded-full bg-yellow-100 text-yellow-700">
+                                    <i class="fas fa-clock mr-1"></i>{{ session.status|title }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">
+                            {{ session.phone_number|default:"—" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ session.last_active_at|timesince }} ago
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-8 text-center">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
+                <i class="fas fa-link-slash text-gray-400 text-xl"></i>
+            </div>
+            <p class="text-sm text-gray-500">No active sessions</p>
+            <p class="text-xs text-gray-400 mt-1">Restart will not affect any users</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Process Information -->
+    {% if processes %}
+    <div class="card">
+        <div class="px-6 py-5 border-b border-gray-100">
+            <h2 class="text-lg font-bold text-gray-900">Running Processes</h2>
+        </div>
+        <div class="p-6">
+            <div class="bg-gray-50 rounded-lg p-4 overflow-x-auto">
+                <pre class="text-xs text-gray-700 font-mono whitespace-pre-wrap">{% for process in processes %}{{ process }}
+{% endfor %}</pre>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Service Logs -->
+    {% if logs %}
+    <div class="card">
+        <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-gray-900">Service Logs</h2>
+                <p class="text-sm text-gray-500 mt-1">Showing last {{ log_count }} log entries</p>
+            </div>
+            <button onclick="refreshLogs()" class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors" style="background: var(--primary-100); color: var(--primary-700);">
+                <i class="fas fa-sync-alt mr-2"></i>
+                Refresh Logs
+            </button>
+        </div>
+        <div class="p-6">
+            <div class="bg-gray-900 rounded-lg p-4 overflow-x-auto max-h-96 overflow-y-auto">
+                <pre class="text-xs text-green-400 font-mono whitespace-pre-wrap">{% for log in logs %}{{ log }}{% endfor %}</pre>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card p-6 text-center">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+            <i class="fas fa-file-alt text-3xl text-gray-400"></i>
+        </div>
+        <h3 class="text-lg font-bold text-gray-900 mb-2">No logs available</h3>
+        <p class="text-sm text-gray-500">Service logs could not be found or read</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-sm mx-4">
+        <div class="flex items-center space-x-4">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div>
+                <p class="text-sm font-semibold text-gray-900" id="loadingMessage">Processing...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showLoading(message) {
+        document.getElementById('loadingMessage').textContent = message;
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+    }
+    
+    function hideLoading() {
+        document.getElementById('loadingOverlay').classList.add('hidden');
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    async function performAction(action) {
+        const actionMessages = {
+            'start': 'Starting service...',
+            'stop': 'Stopping service...',
+            'restart': 'Restarting service...'
+        };
+        
+        // Custom confirmation messages
+        let confirmMessage = '';
+        if (action === 'restart') {
+            const activeCount = {{ active_sessions_count }};
+            if (activeCount > 0) {
+                confirmMessage = `Restart will briefly disconnect ${activeCount} active session(s).\n\nThey will auto-reconnect in 5-10 seconds.\n\nProceed with restart?`;
+            } else {
+                confirmMessage = 'No active sessions. Proceed with restart?';
+            }
+        } else if (action === 'stop') {
+            confirmMessage = `This will stop the WhatsApp service.\nActive sessions will be disconnected.\n\nProceed?`;
+        } else {
+            confirmMessage = `Start the WhatsApp service?`;
+        }
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+        
+        showLoading(actionMessages[action]);
+        
+        try {
+            const response = await fetch('{% url "dashboard:service_action" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ action: action })
+            });
+            
+            const data = await response.json();
+            
+            hideLoading();
+            
+            if (data.success) {
+                alert(data.message || `Service ${action} completed successfully`);
+                // Wait a bit before refreshing to let service start/stop
+                setTimeout(() => {
+                    window.location.reload();
+                }, action === 'start' ? 3000 : 1000);
+            } else {
+                alert('Error: ' + (data.error || data.message || 'Unknown error'));
+            }
+        } catch (error) {
+            hideLoading();
+            alert('Error performing action: ' + error.message);
+        }
+    }
+    
+    function refreshStatus() {
+        showLoading('Refreshing status...');
+        window.location.reload();
+    }
+    
+    function refreshLogs() {
+        showLoading('Refreshing logs...');
+        window.location.reload();
+    }
+    
+    // Auto-refresh every 30 seconds
+    setInterval(() => {
+        window.location.reload();
+    }, 30000);
+</script>
+{% endblock %}
+

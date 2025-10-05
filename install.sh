@@ -1,9 +1,9 @@
 #!/bin/bash
-# WhatsApp Web API SaaS - Installation Script for Linux/Mac
+# SanaSend SaaS - Installation Script for Linux/Mac
 # Run this script with: bash install.sh
 
 echo "=================================="
-echo "WhatsApp Web API SaaS - Installer"
+echo "SanaSend SaaS - Installer"
 echo "=================================="
 echo ""
 

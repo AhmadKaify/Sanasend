@@ -1,4 +1,4 @@
-# WhatsApp Web API SaaS - Deployment Checklist
+# SanaSend SaaS - Deployment Checklist
 
 ## Pre-Deployment Requirements
 

@@ -36,9 +36,9 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
         csp = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
-            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.tailwindcss.com; "
+            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://fonts.googleapis.com; "
             "img-src 'self' data: https:; "
-            "font-src 'self' data: https://cdnjs.cloudflare.com; "
+            "font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
             "connect-src 'self'; "
             "frame-ancestors 'none';"
         )
@@ -79,21 +79,30 @@ class BruteForceProtectionMiddleware(MiddlewareMixin):
     
     def _is_brute_force_attempt(self, ip):
         """Check if IP is making too many requests"""
-        now = timezone.now()
-        minute_key = f"brute_force:{ip}:{now.strftime('%Y-%m-%d-%H-%M')}"
-        hour_key = f"brute_force:{ip}:{now.strftime('%Y-%m-%d-%H')}"
-        
-        # Check per-minute limit (20 requests)
-        minute_count = cache.get(minute_key, 0)
-        if minute_count >= 20:
-            return True
-        
-        # Check per-hour limit (200 requests)
-        hour_count = cache.get(hour_key, 0)
-        if hour_count >= 200:
-            return True
-        
-        return False
+        try:
+            now = timezone.now()
+            minute_key = f"brute_force:{ip}:{now.strftime('%Y-%m-%d-%H-%M')}"
+            hour_key = f"brute_force:{ip}:{now.strftime('%Y-%m-%d-%H')}"
+            
+            # Check per-minute limit (20 requests)
+            minute_count = cache.get(minute_key, 0)
+            if minute_count >= 20:
+                return True
+            
+            # Check per-hour limit (200 requests)
+            hour_count = cache.get(hour_key, 0)
+            if hour_count >= 200:
+                return True
+            
+            # Increment counters
+            cache.set(minute_key, minute_count + 1, 60)  # Expire in 60 seconds
+            cache.set(hour_key, hour_count + 1, 3600)  # Expire in 1 hour
+            
+            return False
+        except Exception as e:
+            # If cache is unavailable (e.g., Redis not running), log and allow request
+            logger.warning(f"Brute force protection cache error: {e}. Allowing request.")
+            return False
     
     def _brute_force_response(self):
         """Return brute force protection response"""

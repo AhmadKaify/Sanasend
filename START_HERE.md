@@ -1,6 +1,6 @@
 # 👋 START HERE - New Developer Guide
 
-## Welcome to WhatsApp Web API SaaS Project!
+## Welcome to SanaSend SaaS Project!
 
 **Current Status:** Phases 1-4 Complete ✅ | WhatsApp Integration WORKING 🎉
 

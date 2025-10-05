@@ -1,4 +1,4 @@
-# WhatsApp Web API SaaS - Deployment Guide
+# SanaSend SaaS - Deployment Guide
 
 ## Table of Contents
 1. [Overview](#overview)
@@ -12,7 +12,7 @@
 
 ## Overview
 
-This guide covers deploying the WhatsApp Web API SaaS application to production. The application consists of:
+This guide covers deploying the SanaSend SaaS application to production. The application consists of:
 
 - **Django Backend**: REST API and admin interface
 - **Node.js Service**: WhatsApp Web integration

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Load testing script for WhatsApp Web API SaaS
+Load testing script for SanaSend SaaS
 """
 import asyncio
 import aiohttp
@@ -26,7 +26,7 @@ from api_keys.models import APIKey
 
 
 class LoadTester:
-    """Load testing utility for the WhatsApp Web API"""
+    """Load testing utility for the SanaSend"""
     
     def __init__(self, base_url: str, api_key: str):
         self.base_url = base_url.rstrip('/')
@@ -264,7 +264,7 @@ def get_test_api_key():
 
 def main():
     """Main function"""
-    parser = argparse.ArgumentParser(description='Load test the WhatsApp Web API')
+    parser = argparse.ArgumentParser(description='Load test the SanaSend')
     parser.add_argument('--url', default='http://localhost:8000', help='Base URL of the API')
     parser.add_argument('--api-key', help='API key for authentication')
     parser.add_argument('--test-type', choices=['all', 'users', 'sessions', 'messages'], 

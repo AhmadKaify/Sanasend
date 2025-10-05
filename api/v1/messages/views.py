@@ -60,7 +60,8 @@ class SendTextMessageView(views.APIView):
         except Exception as e:
             logger.error(f'Unexpected error sending text message: {e}')
             return APIResponse.error(
-                'Failed to send message',
+                f'Failed to send message: {str(e)}',
+                error_code='MESSAGE_SEND_ERROR',
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -117,7 +118,8 @@ class SendMediaMessageView(views.APIView):
         except Exception as e:
             logger.error(f'Unexpected error sending media message: {e}')
             return APIResponse.error(
-                'Failed to send media',
+                f'Failed to send media: {str(e)}',
+                error_code='MEDIA_SEND_ERROR',
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

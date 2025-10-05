@@ -1,5 +1,5 @@
 """
-Base settings for WhatsApp Web API SaaS project.
+Base settings for SanaSend SaaS project.
 """
 from pathlib import Path
 from decouple import config, Csv
@@ -197,17 +197,29 @@ REDIS_HOST = config('REDIS_HOST', default='localhost')
 REDIS_PORT = config('REDIS_PORT', default=6379, cast=int)
 REDIS_DB = config('REDIS_DB', default=0, cast=int)
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },
-        'KEY_PREFIX': 'whatsapp_saas',
-        'TIMEOUT': 300,
+# Use dummy cache if Redis is not available (development mode)
+USE_REDIS = config('USE_REDIS', default='true', cast=bool)
+
+if USE_REDIS:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            },
+            'KEY_PREFIX': 'whatsapp_saas',
+            'TIMEOUT': 300,
+        }
     }
-}
+else:
+    # Use dummy cache for development without Redis
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'whatsapp-cache',
+        }
+    }
 
 # Celery Configuration
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default=f'redis://{REDIS_HOST}:{REDIS_PORT}/1')
@@ -237,6 +249,19 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'analytics.tasks.health_check',
         'schedule': 60.0 * 5.0,  # Run every 5 minutes
     },
+    # WhatsApp Session Management Tasks
+    'cleanup-expired-qr-codes': {
+        'task': 'sessions.tasks.cleanup_expired_qr_codes',
+        'schedule': 60.0,  # Run every minute
+    },
+    'sync-session-status': {
+        'task': 'sessions.tasks.sync_session_status',
+        'schedule': 60.0 * 5.0,  # Run every 5 minutes
+    },
+    'cleanup-disconnected-sessions': {
+        'task': 'sessions.tasks.cleanup_disconnected_sessions',
+        'schedule': 60.0 * 60.0 * 24.0,  # Run daily
+    },
 }
 
 # Node.js Service Configuration
@@ -252,7 +277,7 @@ MAX_MESSAGES_PER_DAY = config('MAX_MESSAGES_PER_DAY', default=1000, cast=int)
 
 # API Documentation
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'WhatsApp Web API',
+    'TITLE': 'SanaSend',
     'DESCRIPTION': 'SaaS API for WhatsApp Web messaging',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
@@ -279,8 +304,8 @@ BRUTE_FORCE_LOCKOUT_TIME = config('BRUTE_FORCE_LOCKOUT_TIME', default=900, cast=
 
 # Django Unfold Configuration
 UNFOLD = {
-    "SITE_TITLE": "WhatsApp Web API Admin",
-    "SITE_HEADER": "WhatsApp Web API SaaS",
+    "SITE_TITLE": "SanaSend Admin",
+    "SITE_HEADER": "SanaSend SaaS",
     "SITE_URL": "/",
     "SITE_ICON": None,
     "SITE_LOGO": None,

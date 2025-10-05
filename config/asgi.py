@@ -1,5 +1,5 @@
 """
-ASGI config for WhatsApp Web API SaaS project.
+ASGI config for SanaSend SaaS project.
 """
 import os
 

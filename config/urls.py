@@ -38,7 +38,7 @@ if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 # Customize admin site
-admin.site.site_header = 'WhatsApp Web API Admin'
-admin.site.site_title = 'WhatsApp Web API'
+admin.site.site_header = 'SanaSend Admin'
+admin.site.site_title = 'SanaSend'
 admin.site.index_title = 'Administration'
 

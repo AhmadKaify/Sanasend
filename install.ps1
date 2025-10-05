@@ -1,8 +1,8 @@
-# WhatsApp Web API SaaS - Installation Script for Windows
+# SanaSend SaaS - Installation Script for Windows
 # Run this script with: .\install.ps1
 
 Write-Host "==================================" -ForegroundColor Cyan
-Write-Host "WhatsApp Web API SaaS - Installer" -ForegroundColor Cyan
+Write-Host "SanaSend SaaS - Installer" -ForegroundColor Cyan
 Write-Host "==================================" -ForegroundColor Cyan
 Write-Host ""
 

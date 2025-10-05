@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# WhatsApp Web API SaaS - Production Deployment Script
+# SanaSend SaaS - Production Deployment Script
 # This script automates the deployment process for production
 
 set -e  # Exit on any error
@@ -21,7 +21,7 @@ MEDIA_DIR="/var/www/$PROJECT_NAME/media"
 NGINX_DIR="/etc/nginx/sites-available"
 SYSTEMD_DIR="/etc/systemd/system"
 
-echo -e "${GREEN}Starting WhatsApp Web API SaaS deployment...${NC}"
+echo -e "${GREEN}Starting SanaSend SaaS deployment...${NC}"
 
 # Function to print status
 print_status() {

@@ -1,5 +1,5 @@
 """
-Health check utilities for the WhatsApp Web API SaaS
+Health check utilities for the SanaSend SaaS
 """
 import psutil
 import redis

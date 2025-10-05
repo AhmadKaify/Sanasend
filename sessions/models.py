@@ -7,9 +7,11 @@ class WhatsAppSession(models.Model):
     """WhatsApp session model - supports multiple instances per user"""
     
     STATUS_CHOICES = [
+        ('initializing', 'Initializing'),
         ('qr_pending', 'QR Code Pending'),
         ('connected', 'Connected'),
         ('disconnected', 'Disconnected'),
+        ('auth_failed', 'Authentication Failed'),
     ]
     
     user = models.ForeignKey(

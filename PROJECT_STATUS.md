@@ -1,6 +1,6 @@
 # Project Status Report
 
-## WhatsApp Web API SaaS - Development Progress
+## SanaSend SaaS - Development Progress
 
 **Generated:** 2024-01-XX
 **Version:** 0.1.0

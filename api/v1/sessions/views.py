@@ -9,6 +9,8 @@ from core.permissions import IsActiveUser
 from core.exceptions import APIException
 from sessions.models import WhatsAppSession
 from sessions.services import WhatsAppService
+from sessions.session_pool import SessionPoolService
+from api_keys.authentication import NodeServiceAuthentication
 import logging
 import random
 
@@ -24,7 +26,7 @@ class SessionListView(views.APIView):
         user = request.user
         
         try:
-            sessions = WhatsAppSession.objects.filter(user=user).order_by('-created_at')
+            sessions = WhatsAppSession.objects.filter(user=user).select_related('user').order_by('-created_at')
             
             session_data = []
             for session in sessions:
@@ -92,6 +94,7 @@ class SessionStatusView(views.APIView):
             
             # Update database if needed
             if result.get('status') and result['status'] != session.status:
+                old_status = session.status
                 session.status = result['status']
                 session.last_active_at = timezone.now()
                 
@@ -101,6 +104,10 @@ class SessionStatusView(views.APIView):
                         session.connected_at = timezone.now()
                 
                 session.save()
+                
+                # Invalidate cache if status changed to/from connected
+                if old_status == 'connected' or result['status'] == 'connected':
+                    SessionPoolService.invalidate_user_sessions_cache(user.id)
             
             return APIResponse.success({
                 'id': session.id,
@@ -192,6 +199,9 @@ class InitSessionView(views.APIView):
                 is_primary=is_primary
             )
             
+            # Invalidate session cache
+            SessionPoolService.invalidate_user_sessions_cache(user.id)
+            
             return APIResponse.success({
                 'id': session.id,
                 'instance_name': session.instance_name,
@@ -222,12 +232,15 @@ class RefreshQRView(views.APIView):
     
     permission_classes = [IsActiveUser]
     
-    def post(self, request):
+    def post(self, request, session_id=None):
         user = request.user
         
         try:
-            # Get session from database
-            session = WhatsAppSession.objects.filter(user=user).first()
+            # Get specific session or first non-connected session
+            if session_id:
+                session = WhatsAppSession.objects.filter(user=user, id=session_id).first()
+            else:
+                session = WhatsAppSession.objects.filter(user=user).exclude(status='connected').first()
             
             if not session:
                 return APIResponse.error(
@@ -250,11 +263,13 @@ class RefreshQRView(views.APIView):
                 # Continue even if disconnect fails (session might not exist in Node.js)
                 logger.warning(f'Failed to disconnect old session during refresh: {e}')
             
-            # Generate new session ID
-            session_id = f"user_{user.id}_session"
+            # Generate new session ID with timestamp to ensure uniqueness
+            import time
+            timestamp = int(time.time())
+            new_session_id = f"user_{user.id}_instance_{session.instance_name.lower().replace(' ', '_')}_{timestamp}"
             
             # Call Node.js service to initialize with new QR
-            result = whatsapp_service.init_session(user.id, session_id)
+            result = whatsapp_service.init_session(user.id, new_session_id)
             
             if not result.get('success'):
                 return APIResponse.error(
@@ -264,14 +279,14 @@ class RefreshQRView(views.APIView):
             
             # Update session with new QR code
             qr_expires_at = timezone.now() + timedelta(seconds=60)
-            session.session_id = session_id
+            session.session_id = new_session_id
             session.status = result.get('status', 'qr_pending')
             session.qr_code = result.get('qrCode')
             session.qr_expires_at = qr_expires_at
             session.save()
             
             return APIResponse.success({
-                'sessionId': session_id,
+                'sessionId': new_session_id,
                 'status': result.get('status'),
                 'qrCode': result.get('qrCode'),
                 'qrExpiresAt': qr_expires_at.isoformat(),
@@ -329,6 +344,9 @@ class DisconnectSessionView(views.APIView):
             session.qr_expires_at = None
             session.save()
             
+            # Invalidate session cache
+            SessionPoolService.invalidate_user_sessions_cache(user.id)
+            
             return APIResponse.success({
                 'message': f'Session "{session.instance_name}" disconnected successfully'
             })
@@ -375,7 +393,11 @@ class DeleteSessionView(views.APIView):
             
             # Delete session from database
             instance_name = session.instance_name
+            user_id = session.user_id
             session.delete()
+            
+            # Invalidate session cache
+            SessionPoolService.invalidate_user_sessions_cache(user_id)
             
             return APIResponse.success({
                 'message': f'Session "{instance_name}" deleted successfully'
@@ -398,21 +420,32 @@ class SetPrimarySessionView(views.APIView):
         user = request.user
         
         try:
-            # Get target session
-            target_session = WhatsAppSession.objects.filter(user=user, id=session_id).first()
+            # Use atomic transaction with row-level locking for race condition safety
+            with transaction.atomic():
+                # Lock all user sessions to prevent concurrent updates
+                target_session = WhatsAppSession.objects.select_for_update().filter(
+                    user=user, 
+                    id=session_id
+                ).first()
+                
+                if not target_session:
+                    return APIResponse.error(
+                        'Session not found',
+                        status_code=status.HTTP_404_NOT_FOUND
+                    )
+                
+                # Remove primary flag from all other sessions (with lock)
+                WhatsAppSession.objects.select_for_update().filter(
+                    user=user, 
+                    is_primary=True
+                ).exclude(id=session_id).update(is_primary=False)
+                
+                # Set target session as primary
+                target_session.is_primary = True
+                target_session.save()
             
-            if not target_session:
-                return APIResponse.error(
-                    'Session not found',
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            # Remove primary flag from all other sessions
-            WhatsAppSession.objects.filter(user=user).update(is_primary=False)
-            
-            # Set target session as primary
-            target_session.is_primary = True
-            target_session.save()
+            # Invalidate session cache (outside transaction)
+            SessionPoolService.invalidate_user_sessions_cache(user.id)
             
             return APIResponse.success({
                 'message': f'Session "{target_session.instance_name}" set as primary'
@@ -422,6 +455,45 @@ class SetPrimarySessionView(views.APIView):
             logger.error(f'Error setting primary session for user {user.id}: {e}')
             return APIResponse.error(
                 'Failed to set primary session',
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class ActiveSessionsForRestorationView(views.APIView):
+    """
+    Get all connected sessions for restoration after Node.js restart
+    This endpoint is called by the Node.js service on startup
+    """
+    
+    authentication_classes = [NodeServiceAuthentication]
+    permission_classes = []  # Authenticated via NodeServiceAuthentication
+    
+    def get(self, request):
+        try:
+            # Get all sessions that should be connected (already has select_related)
+            sessions = WhatsAppSession.objects.filter(
+                status='connected'
+            ).select_related('user').values(
+                'id',
+                'session_id',
+                'user_id',
+                'instance_name',
+                'phone_number'
+            )
+            
+            session_list = list(sessions)
+            
+            logger.info(f'Restoration query: found {len(session_list)} connected sessions')
+            
+            return APIResponse.success({
+                'sessions': session_list,
+                'count': len(session_list)
+            })
+            
+        except Exception as e:
+            logger.error(f'Error getting active sessions for restoration: {e}')
+            return APIResponse.error(
+                'Failed to get active sessions',
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

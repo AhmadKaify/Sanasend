@@ -3,6 +3,8 @@ WhatsApp service integration layer
 Communicates with Node.js WhatsApp service
 """
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from django.conf import settings
 from core.exceptions import APIException
 import logging
@@ -13,14 +15,46 @@ logger = logging.getLogger(__name__)
 class WhatsAppService:
     """Service to communicate with Node.js WhatsApp service"""
     
+    # Shared session for connection pooling
+    _http_session = None
+    
     def __init__(self):
         self.base_url = settings.NODE_SERVICE_URL
         self.api_key = settings.NODE_SERVICE_API_KEY
         self.timeout = 60  # Increased timeout for QR generation
     
+    @classmethod
+    def get_http_session(cls):
+        """Get or create a shared HTTP session with connection pooling"""
+        if cls._http_session is None:
+            cls._http_session = requests.Session()
+            
+            # Configure retry strategy
+            retry_strategy = Retry(
+                total=3,  # Maximum number of retries
+                backoff_factor=0.3,  # Wait 0.3, 0.6, 1.2 seconds between retries
+                status_forcelist=[429, 500, 502, 503, 504],  # Retry on these status codes
+                allowed_methods=["GET", "POST"]  # Retry on these methods
+            )
+            
+            # Configure adapter with connection pooling
+            adapter = HTTPAdapter(
+                pool_connections=20,  # Number of connection pools to cache
+                pool_maxsize=50,  # Max number of connections in the pool
+                max_retries=retry_strategy
+            )
+            
+            # Mount adapter for both http and https
+            cls._http_session.mount('http://', adapter)
+            cls._http_session.mount('https://', adapter)
+            
+            logger.info('Initialized HTTP session with connection pooling (pool_size=50)')
+        
+        return cls._http_session
+    
     def _make_request(self, method, endpoint, data=None, timeout=None):
         """
-        Make HTTP request to Node.js service
+        Make HTTP request to Node.js service using connection pooling
         """
         url = f"{self.base_url}{endpoint}"
         headers = {
@@ -28,11 +62,14 @@ class WhatsAppService:
             'x-api-key': self.api_key
         }
         
+        # Use shared session for connection pooling
+        session = self.get_http_session()
+        
         try:
             if method == 'GET':
-                response = requests.get(url, headers=headers, timeout=timeout or self.timeout)
+                response = session.get(url, headers=headers, timeout=timeout or self.timeout)
             elif method == 'POST':
-                response = requests.post(url, json=data, headers=headers, timeout=timeout or self.timeout)
+                response = session.post(url, json=data, headers=headers, timeout=timeout or self.timeout)
             else:
                 raise ValueError(f'Unsupported HTTP method: {method}')
             
@@ -104,7 +141,8 @@ class WhatsAppService:
         Check if WhatsApp service is healthy
         """
         try:
-            response = requests.get(f'{self.base_url}/health', timeout=5)
+            session = self.get_http_session()
+            response = session.get(f'{self.base_url}/health', timeout=5)
             return response.status_code == 200
         except:
             return False

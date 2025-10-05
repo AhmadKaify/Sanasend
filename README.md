@@ -1,4 +1,4 @@
-# WhatsApp Web API SaaS
+# SanaSend SaaS
 
 A Django-based SaaS application that provides WhatsApp Web access through a REST API. Admin-managed users only.
 

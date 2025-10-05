@@ -64,12 +64,69 @@ setInterval(() => {
   whatsappManager.cleanupInactiveSessions();
 }, 30 * 60 * 1000);
 
+// Periodic health check and status sync (every 5 minutes)
+setInterval(async () => {
+  logger.info('Running health check and status sync...');
+  
+  try {
+    const axios = require('axios');
+    const sessions = whatsappManager.getActiveSessions();
+    
+    for (const session of sessions) {
+      try {
+        // Check actual client status
+        const status = await whatsappManager.getSessionStatus(session.sessionId);
+        
+        // Only notify Django if status changed to disconnected
+        if (status.status === 'disconnected' || status.status === 'auth_failed') {
+          logger.warn(`Session ${session.sessionId} is ${status.status}, notifying Django`);
+          
+          // Notify Django via webhook
+          await axios.post(
+            `${config.djangoApiUrl}/api/v1/sessions/webhook/`,
+            {
+              sessionId: session.sessionId,
+              status: status.status,
+              timestamp: new Date().toISOString(),
+              reason: 'Health check detected disconnection'
+            },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': config.apiKey
+              },
+              timeout: 5000
+            }
+          );
+        }
+      } catch (error) {
+        logger.error(`Health check failed for ${session.sessionId}:`, error);
+      }
+    }
+    
+    logger.info(`Health check complete. Checked ${sessions.length} sessions.`);
+  } catch (error) {
+    logger.error('Health check failed:', error);
+  }
+}, 5 * 60 * 1000);
+
 // Start server
 const PORT = config.port;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   logger.info(`WhatsApp Service running on port ${PORT}`);
   logger.info(`Environment: ${config.nodeEnv}`);
   logger.info(`Max concurrent sessions: ${config.maxConcurrentSessions}`);
+  
+  // Restore sessions after 5 seconds (give Django time to be ready)
+  setTimeout(async () => {
+    try {
+      logger.info('Initiating session restoration...');
+      const result = await whatsappManager.restoreSessions();
+      logger.info(`Session restoration result: ${JSON.stringify(result)}`);
+    } catch (error) {
+      logger.error('Session restoration failed:', error);
+    }
+  }, 5000);
 });
 
 // Graceful shutdown

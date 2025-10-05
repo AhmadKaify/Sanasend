@@ -69,3 +69,40 @@ htmlcov/
 coverage.xml
 *.cover
 
+# WhatsApp Session Data
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Backup files
+*.backup
+*.bak
+*.sql
+*.dump
+
+# Gunicorn
+gunicorn.sock
+
+# Pytest
+.pytest_cache/
+
+# MyPy
+.mypy_cache/
+
+# IPython
+.ipynb_checkpoints/
+
+# Local development files
+.env.local
+.env.development
+.env.production
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Documentation builds
+docs/_build/
+docs/.buildinfo
+

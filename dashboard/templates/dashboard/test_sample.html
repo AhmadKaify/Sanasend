@@ -52,12 +52,25 @@
     <!-- Main Content - 2 Column Layout -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        <!-- Left Column - Form and PHP Code -->
-        <div class="space-y-6">
-            <!-- Send Message Form -->
-            <div class="bg-white shadow rounded-lg p-6">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">Send Test Message</h2>
-                
+        <!-- Left Column - Tabbed Interface -->
+        <div class="bg-white shadow rounded-lg">
+            <!-- Tabs -->
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+                    <button id="sendTab" class="border-teal-500 text-teal-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm active">
+                        <i class="fas fa-paper-plane mr-2"></i>Send Message
+                    </button>
+                    <button id="requestTab" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-code mr-2"></i>Request
+                    </button>
+                    <button id="responseTab" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-check-circle mr-2"></i>Response
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Send Message Tab Content -->
+            <div id="sendContent" class="p-6">
                 <form id="testForm" class="space-y-4">
                     <!-- API Key Field -->
                     <div>
@@ -84,29 +97,92 @@
                         <label for="message" class="block text-sm font-medium text-gray-700 mb-1">
                             Message <span class="text-red-500">*</span>
                         </label>
-                        <textarea id="message" name="message" rows="3" placeholder="WhatsApp API on myweb.com works good"
-                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500" required>WhatsApp API on myweb.com works good</textarea>
+                        <textarea id="message" name="message" rows="4" placeholder="WhatsApp API on myweb.com works good"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500" required>Test message from SanaSend</textarea>
                         <p class="text-xs text-gray-500 mt-1">Message text, UTF-8 or UTF-16 string with emoji Max length: 4096 characters.</p>
                     </div>
 
                     <!-- Send Button -->
-                    <button type="submit" class="w-full bg-teal-600 text-white py-2 px-4 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition duration-150 ease-in-out">
-                        <i class="fas fa-paper-plane mr-2"></i> Send
+                    <button type="submit" class="w-full bg-teal-600 text-white py-3 px-4 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition duration-150 ease-in-out">
+                        <i class="fas fa-paper-plane mr-2"></i> Send Message
                     </button>
                 </form>
             </div>
 
-            <!-- PHP Code Sample -->
-            <div class="bg-white shadow rounded-lg p-6">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">PHP Code Sample</h2>
-                
+            <!-- Request Content -->
+            <div id="requestContent" class="p-6 hidden">
+                <!-- Request URL -->
+                <div class="mb-6">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h3 class="text-sm font-medium text-green-800 mb-2">Request URL</h3>
+                        <div class="bg-white border border-green-200 rounded p-3">
+                            <code class="text-sm text-gray-800" id="requestUrl">{{ api_base_url }}/messages/send-text/</code>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Request Headers -->
+                <div class="mb-6">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h3 class="text-sm font-medium text-green-800 mb-2">Request Headers</h3>
+                        <div class="bg-white border border-green-200 rounded p-3">
+                            <pre class="text-sm text-gray-800">{
+  "Content-Type": "application/json",
+  "Accept": "application/json",
+  "Authorization": "ApiKey YOUR_API_KEY_HERE"
+}</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Request Body -->
+                <div>
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h3 class="text-sm font-medium text-green-800 mb-2">Request Body</h3>
+                        <div class="bg-white border border-green-200 rounded p-3">
+                            <pre class="text-sm text-gray-800" id="requestBody">{
+  "recipient": "",
+  "message": ""
+}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Response Content -->
+            <div id="responseContent" class="p-6 hidden">
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-800 mb-2">Response</h3>
+                    <div class="bg-white border border-gray-200 rounded p-3">
+                        <pre class="text-sm text-gray-800" id="responseBody">Click "Send Message" to see the response here...</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - PHP Code Sample & Response Types -->
+        <div class="bg-white shadow rounded-lg">
+            <!-- Tabs -->
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+                    <button id="phpCodeTab" class="border-teal-500 text-teal-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm active">
+                        <i class="fab fa-php mr-2"></i>PHP Sample
+                    </button>
+                    <button id="responseTypesTab" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-list-ul mr-2"></i>Response Types
+                    </button>
+                </nav>
+            </div>
+
+            <!-- PHP Code Tab Content -->
+            <div id="phpCodeContent" class="p-6">
                 <div class="bg-gray-900 rounded-lg p-4 overflow-x-auto">
                     <pre class="text-sm text-green-400"><code>&lt;?php
 // WhatsApp API Test Sample
 $apiUrl = '{{ api_base_url }}/messages/send-text/';
 $apiKey = 'YOUR_API_KEY_HERE';
 $recipient = '+1408XXXXXXX';
-$message = 'WhatsApp API on myweb.com works good';
+$message = 'Test message from SanaSend';
 
 // Prepare the data
 $data = [
@@ -155,55 +231,108 @@ curl_close($ch);
                     </ol>
                 </div>
             </div>
-        </div>
 
-        <!-- Right Column - Request/Response Tabs -->
-        <div class="bg-white shadow rounded-lg">
-            <!-- Tabs -->
-            <div class="border-b border-gray-200">
-                <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
-                    <button id="requestTab" class="border-teal-500 text-teal-600 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm active">
-                        Request
-                    </button>
-                    <button id="responseTab" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
-                        Response
-                    </button>
-                </nav>
-            </div>
-
-            <!-- Request Content -->
-            <div id="requestContent" class="p-6">
-                <!-- Request URL -->
-                <div class="mb-6">
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <h3 class="text-sm font-medium text-green-800 mb-2">Request URL</h3>
-                        <div class="bg-white border border-green-200 rounded p-3">
-                            <code class="text-sm text-gray-800" id="requestUrl">{{ api_base_url }}/messages/send-text/</code>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Request Body -->
-                <div>
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <h3 class="text-sm font-medium text-green-800 mb-2">Request Body</h3>
-                        <div class="bg-white border border-green-200 rounded p-3">
-                            <pre class="text-sm text-gray-800" id="requestBody">{
-  "recipient": "",
-  "message": ""
+            <!-- Response Types Tab Content -->
+            <div id="responseTypesContent" class="p-6 hidden">
+                <div class="space-y-4">
+                    
+                    <!-- Success Response -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-green-700 mb-2 flex items-center">
+                            <i class="fas fa-check-circle mr-2"></i>Success Response (200 OK)
+                        </h3>
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <pre class="text-xs text-gray-800">{
+  "success": true,
+  "message": "Message sent successfully",
+  "data": {
+    "message_id": "3EB0C1A1B2C3D4E5F6",
+    "status": "sent",
+    "recipient": "+1408XXXXXXX",
+    "timestamp": "2025-10-05T12:34:56Z"
+  }
 }</pre>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Response Content -->
-            <div id="responseContent" class="p-6 hidden">
-                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                    <h3 class="text-sm font-medium text-gray-800 mb-2">Response</h3>
-                    <div class="bg-white border border-gray-200 rounded p-3">
-                        <pre class="text-sm text-gray-800" id="responseBody">Click "Send" to see the response here...</pre>
+                    <!-- Message Queued Response -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-blue-700 mb-2 flex items-center">
+                            <i class="fas fa-clock mr-2"></i>Message Queued (202 Accepted)
+                        </h3>
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <pre class="text-xs text-gray-800">{
+  "success": true,
+  "message": "Message queued - WhatsApp session not ready",
+  "data": {
+    "message_id": "queue_3EB0C1A1B2C3D4E5F6",
+    "status": "queued",
+    "recipient": "+1408XXXXXXX"
+  }
+}</pre>
+                        </div>
                     </div>
+
+                    <!-- Validation Error Response -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-red-700 mb-2 flex items-center">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>Validation Error (400 Bad Request)
+                        </h3>
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <pre class="text-xs text-gray-800">{
+  "success": false,
+  "message": "Validation failed",
+  "errors": {
+    "recipient": ["This field is required."],
+    "message": ["This field cannot be blank."]
+  }
+}</pre>
+                        </div>
+                    </div>
+
+                    <!-- Authentication Error -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-red-700 mb-2 flex items-center">
+                            <i class="fas fa-lock mr-2"></i>Authentication Error (401 Unauthorized)
+                        </h3>
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <pre class="text-xs text-gray-800">{
+  "success": false,
+  "message": "Invalid API key",
+  "error_code": "INVALID_API_KEY"
+}</pre>
+                        </div>
+                    </div>
+
+                    <!-- Rate Limit Error -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-orange-700 mb-2 flex items-center">
+                            <i class="fas fa-tachometer-alt mr-2"></i>Rate Limit (429 Too Many Requests)
+                        </h3>
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <pre class="text-xs text-gray-800">{
+  "success": false,
+  "message": "Rate limit exceeded",
+  "error_code": "RATE_LIMIT_EXCEEDED",
+  "retry_after": 60
+}</pre>
+                        </div>
+                    </div>
+
+                    <!-- Server Error -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-red-700 mb-2 flex items-center">
+                            <i class="fas fa-server mr-2"></i>Server Error (500 Internal Server Error)
+                        </h3>
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <pre class="text-xs text-gray-800">{
+  "success": false,
+  "message": "Internal server error",
+  "error_code": "SERVER_ERROR"
+}</pre>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -213,16 +342,75 @@ curl_close($ch);
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('testForm');
-    const apiKeySelect = document.getElementById('apiKey');
+    const apiKeyInput = document.getElementById('apiKey');
     const recipientInput = document.getElementById('recipient');
     const messageInput = document.getElementById('message');
     const requestUrl = document.getElementById('requestUrl');
     const requestBody = document.getElementById('requestBody');
-    const responseContent = document.getElementById('responseContent');
     const responseBody = document.getElementById('responseBody');
+    
+    // Tab elements
+    const sendTab = document.getElementById('sendTab');
     const requestTab = document.getElementById('requestTab');
     const responseTab = document.getElementById('responseTab');
+    
+    // Content elements
+    const sendContent = document.getElementById('sendContent');
     const requestContent = document.getElementById('requestContent');
+    const responseContent = document.getElementById('responseContent');
+
+    // Tab switching function
+    function switchTab(activeTab, activeContent) {
+        // Hide all content
+        [sendContent, requestContent, responseContent].forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        // Reset all tabs
+        [sendTab, requestTab, responseTab].forEach(tab => {
+            tab.classList.remove('border-teal-500', 'text-teal-600');
+            tab.classList.add('border-transparent', 'text-gray-500');
+        });
+        
+        // Show active content and tab
+        activeContent.classList.remove('hidden');
+        activeTab.classList.add('border-teal-500', 'text-teal-600');
+        activeTab.classList.remove('border-transparent', 'text-gray-500');
+    }
+
+    // Tab click handlers
+    sendTab.addEventListener('click', () => switchTab(sendTab, sendContent));
+    requestTab.addEventListener('click', () => switchTab(requestTab, requestContent));
+    responseTab.addEventListener('click', () => switchTab(responseTab, responseContent));
+
+    // Right column tabs
+    const phpCodeTab = document.getElementById('phpCodeTab');
+    const responseTypesTab = document.getElementById('responseTypesTab');
+    const phpCodeContent = document.getElementById('phpCodeContent');
+    const responseTypesContent = document.getElementById('responseTypesContent');
+
+    // Right column tab switching
+    function switchRightTab(activeTab, activeContent) {
+        // Hide all right column content
+        [phpCodeContent, responseTypesContent].forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        // Reset all right column tabs
+        [phpCodeTab, responseTypesTab].forEach(tab => {
+            tab.classList.remove('border-teal-500', 'text-teal-600');
+            tab.classList.add('border-transparent', 'text-gray-500');
+        });
+        
+        // Show active content and tab
+        activeContent.classList.remove('hidden');
+        activeTab.classList.add('border-teal-500', 'text-teal-600');
+        activeTab.classList.remove('border-transparent', 'text-gray-500');
+    }
+
+    // Right column tab click handlers
+    phpCodeTab.addEventListener('click', () => switchRightTab(phpCodeTab, phpCodeContent));
+    responseTypesTab.addEventListener('click', () => switchRightTab(responseTypesTab, responseTypesContent));
 
     // Update request body when form changes
     function updateRequestBody() {
@@ -237,25 +425,6 @@ document.addEventListener('DOMContentLoaded', function() {
         requestBody.textContent = JSON.stringify(requestData, null, 2);
     }
 
-    // Tab switching
-    requestTab.addEventListener('click', function() {
-        requestTab.classList.add('border-teal-500', 'text-teal-600');
-        requestTab.classList.remove('border-transparent', 'text-gray-500');
-        responseTab.classList.remove('border-teal-500', 'text-teal-600');
-        responseTab.classList.add('border-transparent', 'text-gray-500');
-        requestContent.classList.remove('hidden');
-        responseContent.classList.add('hidden');
-    });
-
-    responseTab.addEventListener('click', function() {
-        responseTab.classList.add('border-teal-500', 'text-teal-600');
-        responseTab.classList.remove('border-transparent', 'text-gray-500');
-        requestTab.classList.remove('border-teal-500', 'text-teal-600');
-        requestTab.classList.add('border-transparent', 'text-gray-500');
-        responseContent.classList.remove('hidden');
-        requestContent.classList.add('hidden');
-    });
-
     // Update request body on form changes
     recipientInput.addEventListener('input', updateRequestBody);
     messageInput.addEventListener('input', updateRequestBody);
@@ -264,7 +433,7 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        const apiKey = apiKeySelect.value;
+        const apiKey = apiKeyInput.value;
         const recipient = recipientInput.value;
         const message = messageInput.value;
         
@@ -295,24 +464,47 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify(requestData)
         })
-        .then(response => response.json())
-        .then(data => {
-            // Show response
-            responseBody.textContent = JSON.stringify(data, null, 2);
-            responseTab.click(); // Switch to response tab
+        .then(async response => {
+            const contentType = response.headers.get('content-type');
             
-            // Show success/error message
-            if (data.success !== false) {
-                alert('Message sent successfully!');
+            // Check if response is JSON
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+                return { ok: response.ok, status: response.status, data: data };
             } else {
-                alert('Error: ' + (data.message || 'Unknown error'));
+                // Non-JSON response (likely an error page)
+                const text = await response.text();
+                return { 
+                    ok: false, 
+                    status: response.status, 
+                    error: 'Server returned non-JSON response',
+                    text: text.substring(0, 500) // First 500 chars for debugging
+                };
+            }
+        })
+        .then(result => {
+            if (result.data) {
+                // JSON response received
+                responseBody.textContent = JSON.stringify(result.data, null, 2);
+                switchTab(responseTab, responseContent);
+                
+                if (result.ok && result.data.success !== false) {
+                    alert('Message sent successfully!');
+                } else {
+                    alert('Error: ' + (result.data.message || 'Unknown error'));
+                }
+            } else {
+                // Non-JSON response
+                responseBody.textContent = `HTTP ${result.status} - ${result.error}\n\nResponse preview:\n${result.text}`;
+                switchTab(responseTab, responseContent);
+                alert(`Error: Server returned non-JSON response (HTTP ${result.status}). Check the Response tab for details.`);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            responseBody.textContent = 'Error: ' + error.message;
-            responseTab.click(); // Switch to response tab
-            alert('Error sending message: ' + error.message);
+            responseBody.textContent = 'Network Error: ' + error.message + '\n\nThis could be due to:\n- CORS issues\n- Network connectivity\n- Server not responding';
+            switchTab(responseTab, responseContent);
+            alert('Network error: ' + error.message);
         })
         .finally(() => {
             // Reset button state

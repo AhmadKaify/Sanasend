@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for WhatsApp Web API SaaS
+# Multi-stage Dockerfile for SanaSend SaaS
 
 # Stage 1: Build stage
 FROM node:18-alpine AS node-builder

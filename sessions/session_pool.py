@@ -5,6 +5,7 @@ import random
 import logging
 from typing import List, Optional, Dict, Any
 from django.db import transaction
+from django.core.cache import cache
 from sessions.models import WhatsAppSession
 from sessions.services import WhatsAppService
 from core.exceptions import SessionNotConnected
@@ -15,15 +16,43 @@ logger = logging.getLogger(__name__)
 class SessionPoolService:
     """Service for managing multiple WhatsApp sessions with load balancing and fallback"""
     
+    # Cache timeout in seconds
+    SESSION_CACHE_TIMEOUT = 60
+    
     def __init__(self):
         self.whatsapp_service = WhatsAppService()
     
+    @staticmethod
+    def _get_user_sessions_cache_key(user_id):
+        """Get cache key for user's connected sessions"""
+        return f"sessions:user:{user_id}:connected"
+    
+    @staticmethod
+    def invalidate_user_sessions_cache(user_id):
+        """Invalidate cached sessions for a user"""
+        cache_key = SessionPoolService._get_user_sessions_cache_key(user_id)
+        cache.delete(cache_key)
+        logger.debug(f'Invalidated session cache for user {user_id}')
+    
     def get_available_sessions(self, user) -> List[WhatsAppSession]:
-        """Get all connected sessions for a user"""
-        return list(WhatsAppSession.objects.filter(
-            user=user,
-            status='connected'
-        ).order_by('last_active_at'))
+        """Get all connected sessions for a user (with caching)"""
+        cache_key = self._get_user_sessions_cache_key(user.id)
+        sessions = cache.get(cache_key)
+        
+        if sessions is None:
+            # Cache miss - query database
+            sessions = list(WhatsAppSession.objects.filter(
+                user=user,
+                status='connected'
+            ).select_related('user').order_by('last_active_at'))
+            
+            # Cache for 60 seconds
+            cache.set(cache_key, sessions, self.SESSION_CACHE_TIMEOUT)
+            logger.debug(f'Cached {len(sessions)} sessions for user {user.id}')
+        else:
+            logger.debug(f'Retrieved {len(sessions)} sessions from cache for user {user.id}')
+        
+        return sessions
     
     def get_random_session(self, user) -> Optional[WhatsAppSession]:
         """Get a random connected session for load balancing"""
@@ -96,10 +125,13 @@ class SessionPoolService:
             try:
                 logger.info(f'Attempting to send message via session {session.instance_name} (attempt {i+1})')
                 
-                # Update last active time
+                # Update last active time atomically
                 from django.utils import timezone
+                WhatsAppSession.objects.filter(id=session.id).update(
+                    last_active_at=timezone.now()
+                )
+                # Update local object for consistency
                 session.last_active_at = timezone.now()
-                session.save(update_fields=['last_active_at'])
                 
                 # Send message based on type
                 if message_type == 'text':
@@ -140,6 +172,13 @@ class SessionPoolService:
                 else:
                     error_msg = result.get('message', 'Unknown error')
                     logger.warning(f'Failed to send via session {session.instance_name}: {error_msg}')
+                    
+                    # Check if error indicates session is not actually connected
+                    if any(keyword in error_msg.lower() for keyword in ['not found', 'reconnect', 'closed', 'not connected', 'not ready']):
+                        logger.warning(f'Session {session.instance_name} appears disconnected, updating status')
+                        session.status = 'disconnected'
+                        session.save(update_fields=['status'])
+                    
                     attempts.append({
                         'session_id': session.id,
                         'instance_name': session.instance_name,
@@ -151,6 +190,13 @@ class SessionPoolService:
             except Exception as e:
                 error_msg = str(e)
                 logger.error(f'Exception sending via session {session.instance_name}: {error_msg}')
+                
+                # Check if exception indicates disconnection
+                if 'WhatsApp service error' in error_msg or 'timeout' in error_msg.lower():
+                    logger.warning(f'Session {session.instance_name} might be disconnected, updating status')
+                    session.status = 'disconnected'
+                    session.save(update_fields=['status'])
+                
                 attempts.append({
                     'session_id': session.id,
                     'instance_name': session.instance_name,
@@ -186,30 +232,46 @@ class SessionPoolService:
         }
     
     def rotate_primary_session(self, user) -> Optional[WhatsAppSession]:
-        """Rotate primary session to a different connected session"""
+        """Rotate primary session to a different connected session (with locking)"""
         connected_sessions = self.get_available_sessions(user)
         
         if len(connected_sessions) < 2:
             return None
         
-        # Get current primary
-        current_primary = self.get_primary_session(user)
-        
-        # Find next session (excluding current primary)
-        other_sessions = [s for s in connected_sessions if s.id != current_primary.id]
-        if not other_sessions:
-            return None
-        
-        # Set next session as primary
-        next_primary = other_sessions[0]
-        
+        # Use atomic transaction with row-level locking
         with transaction.atomic():
+            # Lock and get current primary
+            current_primary = WhatsAppSession.objects.select_for_update().filter(
+                user=user,
+                is_primary=True,
+                status='connected'
+            ).first()
+            
+            # Find next session (excluding current primary)
+            other_sessions_ids = [s.id for s in connected_sessions if current_primary and s.id != current_primary.id]
+            if not other_sessions_ids:
+                return None
+            
+            # Lock and get next primary session
+            next_primary = WhatsAppSession.objects.select_for_update().filter(
+                id=other_sessions_ids[0]
+            ).first()
+            
+            if not next_primary:
+                return None
+            
             # Remove primary flag from all sessions
-            WhatsAppSession.objects.filter(user=user).update(is_primary=False)
+            WhatsAppSession.objects.select_for_update().filter(
+                user=user, 
+                is_primary=True
+            ).update(is_primary=False)
             
             # Set new primary
             next_primary.is_primary = True
             next_primary.save()
         
-        logger.info(f'Rotated primary session from {current_primary.instance_name} to {next_primary.instance_name}')
+        # Invalidate cache (outside transaction)
+        self.invalidate_user_sessions_cache(user.id)
+        
+        logger.info(f'Rotated primary session from {current_primary.instance_name if current_primary else "None"} to {next_primary.instance_name}')
         return next_primary
