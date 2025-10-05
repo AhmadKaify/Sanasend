@@ -1,0 +1,156 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Styling Test{% endblock %}
+
+{% block content %}
+<div class="px-4 py-6 sm:px-0">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Styling Test Page</h1>
+    
+    <!-- Test Tailwind Classes -->
+    <div class="bg-white shadow rounded-lg p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Tailwind CSS Test</h2>
+        
+        <!-- Color Test -->
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
+            <div class="bg-teal-100 p-4 rounded-lg">
+                <h3 class="text-teal-800 font-semibold">Teal Theme</h3>
+                <p class="text-teal-600">This should be styled with teal colors</p>
+            </div>
+            <div class="bg-blue-100 p-4 rounded-lg">
+                <h3 class="text-blue-800 font-semibold">Blue Card</h3>
+                <p class="text-blue-600">Standard blue styling</p>
+            </div>
+            <div class="bg-green-100 p-4 rounded-lg">
+                <h3 class="text-green-800 font-semibold">Green Card</h3>
+                <p class="text-green-600">Success styling</p>
+            </div>
+        </div>
+        
+        <!-- Button Test -->
+        <div class="flex flex-wrap gap-4 mb-6">
+            <button class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded">
+                Primary Button
+            </button>
+            <button class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                Secondary Button
+            </button>
+            <button class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                Danger Button
+            </button>
+        </div>
+        
+        <!-- Status Badge Test -->
+        <div class="flex flex-wrap gap-4 mb-6">
+            <span class="status-badge text-green-600">
+                <span class="pulse-dot bg-green-500"></span>
+                Connected
+            </span>
+            <span class="status-badge text-yellow-600">
+                <span class="pulse-dot bg-yellow-500"></span>
+                Pending
+            </span>
+            <span class="status-badge text-red-600">
+                <span class="pulse-dot bg-red-500"></span>
+                Disconnected
+            </span>
+        </div>
+        
+        <!-- User Tag Test -->
+        <div class="mb-6">
+            <span class="user-tag">User</span>
+            <span class="user-tag ml-2">Admin</span>
+            <span class="user-tag ml-2">Premium</span>
+        </div>
+        
+        <!-- Grid Test -->
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-link text-3xl text-green-500"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Test Card</dt>
+                                <dd class="text-lg font-medium text-gray-900">Working</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-message text-3xl text-blue-500"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Messages</dt>
+                                <dd class="text-lg font-medium text-gray-900">42</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-chart-line text-3xl text-teal-500"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Analytics</dt>
+                                <dd class="text-lg font-medium text-gray-900">Active</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-key text-3xl text-orange-500"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">API Keys</dt>
+                                <dd class="text-lg font-medium text-gray-900">3</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Font Awesome Test -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Font Awesome Icons Test</h2>
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div class="text-center">
+                <i class="fas fa-home text-3xl text-teal-600 mb-2"></i>
+                <p class="text-sm text-gray-600">Home</p>
+            </div>
+            <div class="text-center">
+                <i class="fas fa-user text-3xl text-blue-600 mb-2"></i>
+                <p class="text-sm text-gray-600">User</p>
+            </div>
+            <div class="text-center">
+                <i class="fas fa-cog text-3xl text-gray-600 mb-2"></i>
+                <p class="text-sm text-gray-600">Settings</p>
+            </div>
+            <div class="text-center">
+                <i class="fas fa-sign-out-alt text-3xl text-red-600 mb-2"></i>
+                <p class="text-sm text-gray-600">Logout</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

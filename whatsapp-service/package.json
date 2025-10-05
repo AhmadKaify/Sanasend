@@ -1,0 +1,33 @@
+{
+  "name": "whatsapp-web-service",
+  "version": "1.0.0",
+  "description": "WhatsApp Web.js service for Django SaaS application",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "whatsapp",
+    "whatsapp-web",
+    "api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "whatsapp-web.js": "^1.23.0",
+    "express": "^4.18.2",
+    "qrcode": "^1.5.3",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.2",
+    "redis": "^4.6.12",
+    "winston": "^3.11.0",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
+

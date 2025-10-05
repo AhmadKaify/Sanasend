@@ -1,0 +1,35 @@
+/* Custom admin styles for WhatsApp Web API Admin */
+
+/* Add your custom CSS styles here to override Unfold defaults */
+
+/* Teal theme overrides */
+:root {
+    --teal-50: #f0fdfa;
+    --teal-100: #ccfbf1;
+    --teal-200: #99f6e4;
+    --teal-300: #5eead4;
+    --teal-400: #2dd4bf;
+    --teal-500: #14b8a6;
+    --teal-600: #0d9488;
+    --teal-700: #0f766e;
+    --teal-800: #115e59;
+    --teal-900: #134e4a;
+}
+
+/* Ensure teal colors are used consistently */
+.text-teal-600 {
+    color: #0d9488 !important;
+}
+
+.bg-teal-600 {
+    background-color: #0d9488 !important;
+}
+
+.border-teal-500 {
+    border-color: #14b8a6 !important;
+}
+
+.focus\:ring-teal-500:focus {
+    --tw-ring-color: #14b8a6 !important;
+}
+

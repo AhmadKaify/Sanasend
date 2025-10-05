@@ -1,0 +1,297 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="px-4 py-6 sm:px-0">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
+    
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <!-- Session Status -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-link text-3xl {% if session and session.status == 'connected' %}text-green-500{% elif session and session.status == 'qr_pending' %}text-yellow-500{% else %}text-red-500{% endif %}"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Session Status</dt>
+                            <dd class="flex items-center">
+                                <div class="text-lg font-medium text-gray-900">
+                                    {% if session %}
+                                        {% if session.status == 'connected' %}
+                                            <span class="status-badge text-green-600">
+                                                <span class="pulse-dot bg-green-500"></span>
+                                                Connected
+                                            </span>
+                                        {% elif session.status == 'qr_pending' %}
+                                            <span class="status-badge text-yellow-600">
+                                                <span class="pulse-dot bg-yellow-500"></span>
+                                                Pending
+                                            </span>
+                                        {% else %}
+                                            <span class="status-badge text-red-600">
+                                                <span class="pulse-dot bg-red-500"></span>
+                                                Disconnected
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-gray-500">Not Initialized</span>
+                                    {% endif %}
+                                </div>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-5 py-3">
+                <div class="text-sm">
+                    <a href="{% url 'dashboard:session' %}" class="font-medium text-teal-600 hover:text-teal-500">
+                        Manage Session <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Today -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-message text-3xl text-blue-500"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Messages Today</dt>
+                            <dd class="flex items-center">
+                                <div class="text-lg font-medium text-gray-900">{{ daily_messages }} / {{ max_messages }}</div>
+                                <div class="ml-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-blue-500 h-2 rounded-full" style="width: {{ rate_limit_percentage }}%"></div>
+                                    </div>
+                                </div>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-5 py-3">
+                <div class="text-sm">
+                    <span class="text-gray-600">{{ rate_limit_remaining }} remaining</span>
+                    <a href="{% url 'dashboard:messages' %}" class="font-medium text-teal-600 hover:text-teal-500 ml-4">
+                        View Messages <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Messages -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-chart-line text-3xl text-teal-500"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Total Messages</dt>
+                            <dd class="flex items-center">
+                                <div class="text-lg font-medium text-gray-900">{{ total_messages }}</div>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-5 py-3">
+                <div class="text-sm">
+                    <span class="font-medium text-gray-600">All time</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Keys -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-key text-3xl text-orange-500"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Active API Keys</dt>
+                            <dd class="flex items-center">
+                                <div class="text-lg font-medium text-gray-900">{{ api_keys_count }}</div>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-5 py-3">
+                <div class="text-sm">
+                    <a href="{% url 'dashboard:api_keys' %}" class="font-medium text-teal-600 hover:text-teal-500">
+                        Manage Keys <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white shadow rounded-lg p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <a href="{% url 'dashboard:session' %}" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                <i class="fas fa-qrcode text-2xl text-teal-600 mr-4"></i>
+                <div>
+                    <h3 class="font-medium text-gray-900">Initialize Session</h3>
+                    <p class="text-sm text-gray-500">Get QR code to connect WhatsApp</p>
+                </div>
+            </a>
+            
+            <a href="{% url 'dashboard:api_keys' %}" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                <i class="fas fa-plus-circle text-2xl text-teal-600 mr-4"></i>
+                <div>
+                    <h3 class="font-medium text-gray-900">Generate API Key</h3>
+                    <p class="text-sm text-gray-500">Create new API key</p>
+                </div>
+            </a>
+            
+            <a href="/api/docs/" target="_blank" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                <i class="fas fa-book text-2xl text-teal-600 mr-4"></i>
+                <div>
+                    <h3 class="font-medium text-gray-900">API Documentation</h3>
+                    <p class="text-sm text-gray-500">View API docs</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Usage Statistics -->
+    <div class="bg-white shadow rounded-lg p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Today's Usage</h2>
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-4">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900">{{ daily_messages }}</div>
+                <div class="text-sm text-gray-500">Messages Sent</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900">{{ daily_text }}</div>
+                <div class="text-sm text-gray-500">Text Messages</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900">{{ daily_media }}</div>
+                <div class="text-sm text-gray-500">Media Messages</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900">{{ daily_api_requests }}</div>
+                <div class="text-sm text-gray-500">API Requests</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Status Breakdown -->
+    <div class="bg-white shadow rounded-lg p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Message Status</h2>
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-600">{{ sent_messages }}</div>
+                <div class="text-sm text-gray-500">Sent Successfully</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-red-600">{{ failed_messages }}</div>
+                <div class="text-sm text-gray-500">Failed</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-yellow-600">{{ pending_messages }}</div>
+                <div class="text-sm text-gray-500">Pending</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Messages -->
+    {% if recent_messages %}
+    <div class="bg-white shadow rounded-lg p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Recent Messages</h2>
+        <div class="overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipient</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for message in recent_messages %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ message.recipient }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ message.message_type|title }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if message.status == 'sent' %}bg-green-100 text-green-800
+                                {% elif message.status == 'failed' %}bg-red-100 text-red-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ message.status|title }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ message.sent_at|date:"H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Session Info -->
+    {% if session %}
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Session Information</h2>
+        <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Session ID</dt>
+                <dd class="mt-1 text-sm text-gray-900 font-mono">{{ session.session_id }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Status</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full 
+                        {% if session.status == 'connected' %}bg-green-100 text-green-800
+                        {% elif session.status == 'qr_pending' %}bg-yellow-100 text-yellow-800
+                        {% else %}bg-red-100 text-red-800{% endif %}">
+                        {{ session.status|upper }}
+                    </span>
+                </dd>
+            </div>
+            {% if session.phone_number %}
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Phone Number</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ session.phone_number }}</dd>
+            </div>
+            {% endif %}
+            {% if session.connected_at %}
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Connected At</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ session.connected_at|date:"Y-m-d H:i:s" }}</dd>
+            </div>
+            {% endif %}
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Last Active</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                    {% if session.last_active_at %}
+                        {{ session.last_active_at|date:"Y-m-d H:i:s" }}
+                    {% else %}
+                        Never
+                    {% endif %}
+                </dd>
+            </div>
+        </dl>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+
