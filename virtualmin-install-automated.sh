@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# SanaSend SaaS - Virtualmin Automated Installer
-# This script automates 90% of the Virtualmin deployment process
-# Run with: bash virtualmin-install.sh
+# SanaSend SaaS - Fully Automated Virtualmin Installer
+# This script runs completely unattended with pre-configured values
+# Run with: bash virtualmin-install-automated.sh
 
 set -e  # Exit on any error
 
@@ -14,14 +14,32 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# ═══════════════════════════════════════════════════════
+# PRE-CONFIGURED VALUES (NO PROMPTS!)
+# ═══════════════════════════════════════════════════════
+
+VMIN_USER="sanasend"
+DOMAIN_NAME="sanasend.com"
+INSTALL_PATH="/home/sanasend/public_html"
+DB_PASSWORD="Passisdb123"
+ADMIN_USERNAME="sanaric"
+ADMIN_EMAIL="sanasoft20@gmail.com"
+ADMIN_PASSWORD="Sanaric123"
+DB_NAME="whatsapp_saas_prod"
+DB_USER="whatsapp_saas"
+USE_REDIS="false"  # Set to "true" if you want Redis
+
+# Generate Node.js API key
+NODE_API_KEY=$(openssl rand -hex 32)
+
 # Script banner
 echo -e "${CYAN}"
 cat << "EOF"
 ╔═══════════════════════════════════════════════════════╗
 ║                                                       ║
-║        SanaSend SaaS - Virtualmin Installer          ║
+║     SanaSend SaaS - Automated Virtualmin Installer   ║
 ║                                                       ║
-║   Automated deployment for Virtualmin servers        ║
+║          Fully Automated - Zero Prompts!             ║
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
 EOF
@@ -61,68 +79,47 @@ if ! command -v sudo &> /dev/null; then
 fi
 
 # Welcome message
-print_step "WELCOME TO VIRTUALMIN INSTALLER"
-echo -e "${YELLOW}This script will set up SanaSend WhatsApp SaaS on your Virtualmin server.${NC}"
-echo -e "${YELLOW}Estimated time: 10-15 minutes${NC}\n"
-
-# Prompt for configuration
-print_step "CONFIGURATION"
-
-# Get Virtualmin username
-read -p "Enter Virtualmin username [sanasend]: " VMIN_USER
-VMIN_USER=${VMIN_USER:-sanasend}
-
-# Get domain
-read -p "Enter your domain name (e.g., example.com): " DOMAIN_NAME
-if [ -z "$DOMAIN_NAME" ]; then
-    print_error "Domain name is required!"
-    exit 1
-fi
-
-# Get installation path
-DEFAULT_PATH="/home/$VMIN_USER/public_html"
-read -p "Enter installation path [$DEFAULT_PATH]: " INSTALL_PATH
-INSTALL_PATH=${INSTALL_PATH:-$DEFAULT_PATH}
-
-# Get database password
-read -sp "Enter database password (create a strong password): " DB_PASSWORD
-echo
-if [ -z "$DB_PASSWORD" ]; then
-    print_error "Database password is required!"
-    exit 1
-fi
-
-# Get Node.js API key
-read -sp "Enter Node.js service API key (create a random string): " NODE_API_KEY
-echo
-if [ -z "$NODE_API_KEY" ]; then
-    NODE_API_KEY=$(openssl rand -hex 32)
-    print_info "Generated random API key: $NODE_API_KEY"
-fi
+print_step "FULLY AUTOMATED INSTALLATION"
+echo -e "${YELLOW}This script will install SanaSend WhatsApp SaaS with pre-configured values.${NC}"
+echo -e "${YELLOW}Estimated time: 10-15 minutes${NC}"
+echo -e "${YELLOW}NO PROMPTS - Completely automated!${NC}\n"
 
 # Configuration summary
-print_step "CONFIGURATION SUMMARY"
-echo "Username: $VMIN_USER"
-echo "Domain: $DOMAIN_NAME"
-echo "Database: whatsapp_saas_prod"
-echo "DB User: whatsapp_saas"
-echo "Installation Path: $INSTALL_PATH"
+print_step "CONFIGURATION (PRE-CONFIGURED)"
+echo -e "${BLUE}Server Configuration:${NC}"
+echo "  • Username: $VMIN_USER"
+echo "  • Domain: $DOMAIN_NAME"
+echo "  • Installation Path: $INSTALL_PATH"
 echo ""
-read -p "Continue with this configuration? (y/n): " CONFIRM
-if [[ ! $CONFIRM =~ ^[Yy]$ ]]; then
-    print_error "Installation cancelled by user"
-    exit 1
-fi
+echo -e "${BLUE}Database Configuration:${NC}"
+echo "  • Database Name: $DB_NAME"
+echo "  • Database User: $DB_USER"
+echo "  • Password: ********** (configured)"
+echo ""
+echo -e "${BLUE}Admin Configuration:${NC}"
+echo "  • Username: $ADMIN_USERNAME"
+echo "  • Email: $ADMIN_EMAIL"
+echo "  • Password: ********** (configured)"
+echo ""
+echo -e "${BLUE}Services:${NC}"
+echo "  • Redis: $([ "$USE_REDIS" = "true" ] && echo "Enabled" || echo "Disabled (local cache)")"
+echo "  • Node.js API Key: ${NODE_API_KEY:0:16}..."
+echo ""
+
+read -p "Press Enter to start automated installation or Ctrl+C to cancel..."
 
 # Set paths
 PROJECT_DIR="$INSTALL_PATH"
 VENV_DIR="$PROJECT_DIR/venv"
 
-# Step 1: Install System Dependencies
-print_step "STEP 1/12: Installing System Dependencies"
-print_info "This will update your system and install required packages..."
+print_status "Starting fully automated installation..."
+echo ""
 
-# Check if packages are already installed to avoid unnecessary installations
+# Step 1: Install System Dependencies
+print_step "STEP 1/14: Installing System Dependencies"
+print_info "Updating system and installing required packages..."
+
+# Check if packages are already installed
 PACKAGES_TO_INSTALL=""
 for pkg in python3 python3-pip python3-venv python3-dev build-essential libpq-dev git curl wget; do
     if ! dpkg -l | grep -q "^ii  $pkg "; then
@@ -133,7 +130,7 @@ done
 if [ ! -z "$PACKAGES_TO_INSTALL" ]; then
     print_info "Installing packages: $PACKAGES_TO_INSTALL"
     sudo apt update -qq
-    sudo apt install -y $PACKAGES_TO_INSTALL
+    sudo apt install -y $PACKAGES_TO_INSTALL > /dev/null 2>&1
 else
     print_status "All required system packages are already installed"
 fi
@@ -142,77 +139,112 @@ fi
 PYTHON_VERSION=$(python3 --version | awk '{print $2}')
 print_status "Python $PYTHON_VERSION installed"
 
-# Install Node.js 18 if not present
-print_step "STEP 2/12: Installing Node.js"
+# Step 2: Install Node.js
+print_step "STEP 2/14: Installing Node.js"
 if ! command -v node &> /dev/null; then
     print_info "Installing Node.js 18..."
-    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-    sudo apt install -y nodejs
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash - > /dev/null 2>&1
+    sudo apt install -y nodejs > /dev/null 2>&1
+    print_status "Node.js installed"
 else
     NODE_VERSION=$(node --version)
     print_status "Node.js $NODE_VERSION already installed"
 fi
 
-# Install PostgreSQL if not present
-print_step "STEP 3/12: Setting up PostgreSQL"
+# Step 3: Install PostgreSQL
+print_step "STEP 3/14: Setting up PostgreSQL"
 if ! command -v psql &> /dev/null; then
     print_info "Installing PostgreSQL..."
-    sudo apt install -y postgresql postgresql-contrib
-    sudo systemctl enable postgresql
+    sudo apt install -y postgresql postgresql-contrib > /dev/null 2>&1
+    sudo systemctl enable postgresql > /dev/null 2>&1
     sudo systemctl start postgresql
+    print_status "PostgreSQL installed"
 else
     print_status "PostgreSQL already installed"
 fi
 
-# Create database and user
-print_info "Creating database and user..."
-sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = 'whatsapp_saas_prod'" | grep -q 1 || \
-    sudo -u postgres psql -c "CREATE DATABASE whatsapp_saas_prod;"
+# Step 4: Create Database and User
+print_step "STEP 4/14: Creating Database and User"
+print_info "Creating database: $DB_NAME"
+print_info "Creating database user: $DB_USER"
 
-sudo -u postgres psql -tc "SELECT 1 FROM pg_user WHERE usename = 'whatsapp_saas'" | grep -q 1 || \
-    sudo -u postgres psql -c "CREATE USER whatsapp_saas WITH PASSWORD '$DB_PASSWORD';"
+sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" | grep -q 1 || \
+    sudo -u postgres psql -c "CREATE DATABASE $DB_NAME;" > /dev/null 2>&1
 
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE whatsapp_saas_prod TO whatsapp_saas;"
-sudo -u postgres psql -c "ALTER USER whatsapp_saas CREATEDB;"
-print_status "Database configured successfully"
+sudo -u postgres psql -tc "SELECT 1 FROM pg_user WHERE usename = '$DB_USER'" | grep -q 1 || \
+    sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';" > /dev/null 2>&1
 
-# Install Redis (optional)
-print_step "STEP 4/12: Setting up Redis (Optional)"
-read -p "Install Redis for production caching? (y/n, recommended: n for small servers): " INSTALL_REDIS
-if [[ $INSTALL_REDIS =~ ^[Yy]$ ]]; then
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" > /dev/null 2>&1
+sudo -u postgres psql -c "ALTER USER $DB_USER CREATEDB;" > /dev/null 2>&1
+
+print_status "Database and user created successfully"
+
+# Step 5: TEST DATABASE CONNECTION
+print_step "STEP 5/14: Testing Database Connection"
+print_info "Verifying database credentials..."
+
+export PGPASSWORD="$DB_PASSWORD"
+CONNECTION_TEST=$(psql -h localhost -U $DB_USER -d $DB_NAME -c "SELECT 1 AS connection_test;" -t 2>&1)
+
+if echo "$CONNECTION_TEST" | grep -q "1"; then
+    print_status "✓ Database connection successful!"
+    print_status "✓ Credentials verified"
+    print_status "✓ Database is ready"
+else
+    print_error "✗ Database connection failed!"
+    print_error "Connection test output: $CONNECTION_TEST"
+    echo ""
+    echo -e "${RED}╔═══════════════════════════════════════════════════════╗${NC}"
+    echo -e "${RED}║                                                       ║${NC}"
+    echo -e "${RED}║         DATABASE CONNECTION TEST FAILED!              ║${NC}"
+    echo -e "${RED}║                                                       ║${NC}"
+    echo -e "${RED}╚═══════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    print_error "Please check:"
+    print_error "1. Database name: $DB_NAME"
+    print_error "2. Database user: $DB_USER"
+    print_error "3. Database password is correct"
+    print_error "4. PostgreSQL is running: sudo systemctl status postgresql"
+    echo ""
+    unset PGPASSWORD
+    exit 1
+fi
+unset PGPASSWORD
+
+# Step 6: Install Redis (if enabled)
+print_step "STEP 6/14: Setting up Redis"
+if [[ $USE_REDIS == "true" ]]; then
     if ! command -v redis-server &> /dev/null; then
-        sudo apt install -y redis-server
-        sudo systemctl enable redis-server
+        print_info "Installing Redis..."
+        sudo apt install -y redis-server > /dev/null 2>&1
+        sudo systemctl enable redis-server > /dev/null 2>&1
         sudo systemctl start redis-server
         print_status "Redis installed and started"
-        USE_REDIS="true"
     else
         print_status "Redis already installed"
-        USE_REDIS="true"
     fi
 else
     print_info "Skipping Redis installation (using local cache)"
-    USE_REDIS="false"
 fi
 
-# Install Supervisor
-print_step "STEP 5/12: Installing Supervisor"
+# Step 7: Install Supervisor
+print_step "STEP 7/14: Installing Supervisor"
 if ! command -v supervisorctl &> /dev/null; then
-    sudo apt install -y supervisor
-    sudo systemctl enable supervisor
+    sudo apt install -y supervisor > /dev/null 2>&1
+    sudo systemctl enable supervisor > /dev/null 2>&1
     sudo systemctl start supervisor
     print_status "Supervisor installed"
 else
     print_status "Supervisor already installed"
 fi
 
-# Create project directory if doesn't exist
-print_step "STEP 6/12: Setting up Project Directory"
+# Step 8: Setup Project Directory
+print_step "STEP 8/14: Setting up Project Directory"
 if [ ! -d "$PROJECT_DIR" ]; then
-    mkdir -p "$PROJECT_DIR"
-    print_status "Project directory created"
-else
-    print_warning "Project directory already exists"
+    print_error "Project directory not found: $PROJECT_DIR"
+    print_info "Please upload your project files to $PROJECT_DIR first"
+    print_info "You can use: git clone, SFTP, or Virtualmin File Manager"
+    exit 1
 fi
 
 cd "$PROJECT_DIR"
@@ -221,14 +253,13 @@ cd "$PROJECT_DIR"
 if [ ! -f "manage.py" ]; then
     print_error "Project files not found in $PROJECT_DIR"
     print_info "Please upload your project files to $PROJECT_DIR first"
-    print_info "You can use: git clone, SFTP, or Virtualmin File Manager"
     exit 1
 fi
 
 print_status "Project files found"
 
-# Create Python virtual environment
-print_step "STEP 7/12: Creating Python Virtual Environment"
+# Step 9: Create Python Virtual Environment
+print_step "STEP 9/14: Creating Python Virtual Environment"
 if [ ! -d "$VENV_DIR" ]; then
     python3 -m venv "$VENV_DIR"
     print_status "Virtual environment created"
@@ -245,8 +276,8 @@ pip install --upgrade pip -q
 pip install -r requirements.txt -q
 print_status "Python dependencies installed"
 
-# Create necessary directories
-print_step "STEP 8/12: Creating Project Directories"
+# Step 10: Create Project Directories
+print_step "STEP 10/14: Creating Project Directories"
 mkdir -p "$PROJECT_DIR/logs"
 mkdir -p "$PROJECT_DIR/media"
 mkdir -p "$PROJECT_DIR/staticfiles"
@@ -258,8 +289,8 @@ print_status "Project directories created"
 print_info "Generating Django secret key..."
 SECRET_KEY=$(python3 -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())")
 
-# Create .env.production file
-print_step "STEP 9/12: Creating Environment Configuration"
+# Step 11: Create Environment Configuration
+print_step "STEP 11/14: Creating Environment Configuration"
 cat > "$PROJECT_DIR/.env.production" << EOF
 # Django Settings
 SECRET_KEY=$SECRET_KEY
@@ -268,8 +299,8 @@ ALLOWED_HOSTS=$DOMAIN_NAME,www.$DOMAIN_NAME
 ENVIRONMENT=production
 
 # Database
-DB_NAME=whatsapp_saas_prod
-DB_USER=whatsapp_saas
+DB_NAME=$DB_NAME
+DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
 DB_HOST=localhost
 DB_PORT=5432
@@ -309,8 +340,8 @@ MEDIA_ROOT=$PROJECT_DIR/media
 EOF
 print_status "Environment configuration created"
 
-# Initialize Django
-print_step "STEP 10/12: Initializing Django Application"
+# Step 12: Initialize Django
+print_step "STEP 12/14: Initializing Django Application"
 
 # Load environment variables from .env.production
 print_info "Loading environment variables..."
@@ -323,14 +354,22 @@ python manage.py migrate --noinput
 print_info "Collecting static files..."
 python manage.py collectstatic --noinput
 
+# Create superuser non-interactively
+print_info "Creating admin superuser: $ADMIN_USERNAME..."
+python manage.py shell << PYEOF
+from django.contrib.auth import get_user_model
+User = get_user_model()
+if not User.objects.filter(username='$ADMIN_USERNAME').exists():
+    User.objects.create_superuser('$ADMIN_USERNAME', '$ADMIN_EMAIL', '$ADMIN_PASSWORD')
+    print('✓ Superuser created successfully')
+else:
+    print('✓ Superuser already exists')
+PYEOF
+
 print_status "Django initialized successfully"
 
-# Create superuser
-print_warning "You need to create an admin user..."
-python manage.py createsuperuser
-
-# Install Node.js dependencies
-print_step "STEP 11/12: Setting up Node.js WhatsApp Service"
+# Step 13: Setup Node.js WhatsApp Service
+print_step "STEP 13/14: Setting up Node.js WhatsApp Service"
 cd "$PROJECT_DIR/whatsapp-service"
 print_info "Installing Node.js dependencies..."
 npm install --production --silent
@@ -344,8 +383,8 @@ DJANGO_BASE_URL=https://$DOMAIN_NAME
 API_KEY=$NODE_API_KEY
 EOF
 
-# Create systemd service files
-print_step "STEP 12/12: Creating System Services"
+# Step 14: Create Systemd Services
+print_step "STEP 14/14: Creating System Services"
 
 # Django service
 sudo tee /etc/systemd/system/whatsapp-django.service > /dev/null << EOF
@@ -360,12 +399,12 @@ Group=$VMIN_USER
 WorkingDirectory=$PROJECT_DIR
 Environment="DJANGO_SETTINGS_MODULE=config.settings.production"
 Environment="PATH=$VENV_DIR/bin"
-ExecStart=$VENV_DIR/bin/gunicorn \\
-    --workers 3 \\
-    --bind 127.0.0.1:8000 \\
-    --timeout 120 \\
-    --access-logfile $PROJECT_DIR/logs/gunicorn-access.log \\
-    --error-logfile $PROJECT_DIR/logs/gunicorn-error.log \\
+ExecStart=$VENV_DIR/bin/gunicorn \
+    --workers 3 \
+    --bind 127.0.0.1:8000 \
+    --timeout 120 \
+    --access-logfile $PROJECT_DIR/logs/gunicorn-access.log \
+    --error-logfile $PROJECT_DIR/logs/gunicorn-error.log \
     config.wsgi:application
 Restart=always
 RestartSec=10
@@ -396,8 +435,8 @@ EOF
 
 # Reload systemd and enable services
 sudo systemctl daemon-reload
-sudo systemctl enable whatsapp-django
-sudo systemctl enable whatsapp-node
+sudo systemctl enable whatsapp-django > /dev/null 2>&1
+sudo systemctl enable whatsapp-node > /dev/null 2>&1
 print_status "System services created and enabled"
 
 # Set proper permissions
@@ -416,26 +455,36 @@ sudo systemctl start whatsapp-node
 
 # Check service status
 sleep 3
-if sudo systemctl is-active --quiet whatsapp-django; then
-    print_status "Django service started successfully"
+DJANGO_STATUS=$(sudo systemctl is-active whatsapp-django)
+NODE_STATUS=$(sudo systemctl is-active whatsapp-node)
+
+echo ""
+print_step "SERVICE STATUS"
+if [ "$DJANGO_STATUS" = "active" ]; then
+    print_status "✓ Django service is running"
 else
-    print_error "Django service failed to start. Check logs: sudo journalctl -u whatsapp-django -n 50"
+    print_error "✗ Django service failed to start"
+    print_warning "Check logs: sudo journalctl -u whatsapp-django -n 50"
 fi
 
-if sudo systemctl is-active --quiet whatsapp-node; then
-    print_status "Node.js service started successfully"
+if [ "$NODE_STATUS" = "active" ]; then
+    print_status "✓ Node.js service is running"
 else
-    print_error "Node.js service failed to start. Check logs: sudo journalctl -u whatsapp-node -n 50"
+    print_error "✗ Node.js service failed to start"
+    print_warning "Check logs: sudo journalctl -u whatsapp-node -n 50"
 fi
 
 # Installation complete
+echo ""
 print_step "INSTALLATION COMPLETE!"
 
 echo -e "${GREEN}"
 cat << "EOF"
 ╔═══════════════════════════════════════════════════════╗
 ║                                                       ║
-║              Installation Successful! 🎉              ║
+║         Installation Successful! 🎉                   ║
+║                                                       ║
+║           All Services Running!                       ║
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
 EOF
@@ -457,29 +506,34 @@ echo -e "   • Admin Panel: ${GREEN}https://$DOMAIN_NAME/admin/${NC}"
 echo -e "   • API Docs: ${GREEN}https://$DOMAIN_NAME/api/docs/${NC}"
 echo -e "   • Health Check: ${GREEN}https://$DOMAIN_NAME/health/${NC}\n"
 
-echo -e "${YELLOW}4. Service Management Commands${NC}"
-echo -e "   • View Django logs: ${GREEN}sudo journalctl -u whatsapp-django -f${NC}"
-echo -e "   • View Node logs: ${GREEN}sudo journalctl -u whatsapp-node -f${NC}"
-echo -e "   • Restart Django: ${GREEN}sudo systemctl restart whatsapp-django${NC}"
-echo -e "   • Restart Node: ${GREEN}sudo systemctl restart whatsapp-node${NC}\n"
+echo -e "${CYAN}═══ LOGIN CREDENTIALS ═══${NC}\n"
+echo -e "Admin Panel Login:"
+echo -e "  • URL: ${GREEN}https://$DOMAIN_NAME/admin/${NC}"
+echo -e "  • Username: ${GREEN}$ADMIN_USERNAME${NC}"
+echo -e "  • Password: ${GREEN}$ADMIN_PASSWORD${NC}"
+echo -e "  • Email: ${GREEN}$ADMIN_EMAIL${NC}\n"
 
 echo -e "${CYAN}═══ PROJECT INFORMATION ═══${NC}\n"
 echo -e "Project Path: ${GREEN}$PROJECT_DIR${NC}"
-echo -e "Database: ${GREEN}whatsapp_saas_prod${NC}"
-echo -e "Database User: ${GREEN}whatsapp_saas${NC}"
+echo -e "Database: ${GREEN}$DB_NAME${NC}"
+echo -e "Database User: ${GREEN}$DB_USER${NC}"
+echo -e "Database Password: ${GREEN}$DB_PASSWORD${NC}"
 echo -e "Django Service: ${GREEN}whatsapp-django.service${NC}"
 echo -e "Node.js Service: ${GREEN}whatsapp-node.service${NC}"
 echo -e "Environment File: ${GREEN}$PROJECT_DIR/.env.production${NC}\n"
 
+echo -e "${CYAN}═══ SERVICE MANAGEMENT ═══${NC}\n"
+echo -e "View Django logs: ${GREEN}sudo journalctl -u whatsapp-django -f${NC}"
+echo -e "View Node logs: ${GREEN}sudo journalctl -u whatsapp-node -f${NC}"
+echo -e "Restart Django: ${GREEN}sudo systemctl restart whatsapp-django${NC}"
+echo -e "Restart Node: ${GREEN}sudo systemctl restart whatsapp-node${NC}"
+echo -e "Check status: ${GREEN}sudo systemctl status whatsapp-django whatsapp-node${NC}\n"
+
 echo -e "${CYAN}═══ IMPORTANT NOTES ═══${NC}\n"
-echo -e "• Your Node.js API key: ${GREEN}$NODE_API_KEY${NC}"
-echo -e "• Database password: ${GREEN}[saved in .env.production]${NC}"
+echo -e "• Node.js API key: ${GREEN}$NODE_API_KEY${NC}"
+echo -e "• All credentials saved in: ${GREEN}$PROJECT_DIR/INSTALLATION_INFO.txt${NC}"
 echo -e "• Make sure to configure your web server (Step 1 above)"
 echo -e "• Run certbot to enable HTTPS (Step 2 above)\n"
-
-echo -e "${YELLOW}For detailed documentation, see:${NC}"
-echo -e "• ${GREEN}VIRTUALMIN_DEPLOYMENT_GUIDE.md${NC} - Full deployment guide"
-echo -e "• ${GREEN}VIRTUALMIN_QUICK_CHECKLIST.md${NC} - Quick reference\n"
 
 # Save installation info
 cat > "$PROJECT_DIR/INSTALLATION_INFO.txt" << EOF
@@ -489,8 +543,16 @@ SanaSend SaaS - Installation Information
 Installation Date: $(date)
 Domain: $DOMAIN_NAME
 Project Path: $PROJECT_DIR
-Database: whatsapp_saas_prod
-Database User: whatsapp_saas
+
+Database Configuration:
+- Database Name: $DB_NAME
+- Database User: $DB_USER
+- Database Password: $DB_PASSWORD
+
+Admin Credentials:
+- Username: $ADMIN_USERNAME
+- Email: $ADMIN_EMAIL
+- Password: $ADMIN_PASSWORD
 
 Node.js API Key: $NODE_API_KEY
 
@@ -499,14 +561,17 @@ Services:
 - Node.js: whatsapp-node.service
 
 Useful Commands:
-- View logs: sudo journalctl -u whatsapp-django -f
+- View Django logs: sudo journalctl -u whatsapp-django -f
+- View Node logs: sudo journalctl -u whatsapp-node -f
 - Restart Django: sudo systemctl restart whatsapp-django
 - Restart Node: sudo systemctl restart whatsapp-node
+- Check status: sudo systemctl status whatsapp-django whatsapp-node
 
 Next Steps:
-1. Configure web server reverse proxy
+1. Configure web server reverse proxy (Nginx/Apache)
 2. Setup SSL with certbot
 3. Access admin panel at https://$DOMAIN_NAME/admin/
+4. Login with username: $ADMIN_USERNAME
 
 For support, check VIRTUALMIN_DEPLOYMENT_GUIDE.md
 EOF

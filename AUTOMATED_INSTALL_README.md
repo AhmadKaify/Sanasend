@@ -236,6 +236,24 @@ sudo systemctl restart whatsapp-django whatsapp-node
 
 ## Troubleshooting
 
+### DB_PASSWORD Not Found Error
+
+**Error**: `decouple.UndefinedValueError: DB_PASSWORD not found`
+
+**Solution**: The `.env.production` file wasn't loaded. Run these commands:
+
+```bash
+cd /home/sanasend/public_html
+source venv/bin/activate
+export DJANGO_SETTINGS_MODULE=config.settings.production
+export $(grep -v '^#' .env.production | xargs)
+python manage.py migrate --noinput
+python manage.py collectstatic --noinput
+python manage.py createsuperuser
+```
+
+Then continue with Node.js setup and service start.
+
 ### Script Fails at Database Creation
 
 **Error**: `database already exists`
